@@ -56,4 +56,7 @@
         <file alias="RJ.svg">resources/images/red_joker.svg</file>
         <file alias="cardback.png">resources/images/design.png</file>
     </qresource>
+    <qresource prefix="/i18n">
+        <file alias="DDZ_zh_CN.qm">DDZ_zh_CN.qm</file>
+    </qresource>
 </RCC>

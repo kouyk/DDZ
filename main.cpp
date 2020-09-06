@@ -36,8 +36,8 @@ int main(int argc, char *argv[])
     a.setStyleSheet("QToolTip { color: #ffffff; background-color: #2a82da; border: 1px solid white; }");
 
     QTranslator translator;
-    translator.load("DDZ_zh_CN");
-    a.installTranslator(&translator);
+    if (translator.load(":/i18n/DDZ_zh_CN"))
+        a.installTranslator(&translator);
 
     MainWindow w;
     w.show();
