@@ -25,11 +25,12 @@ public:
     void remove(const DDZ::CardType &card);
     void remove(const int &idx);
     void clear();
-    Category getCategory() const;
+    bool isPass() const;
+    bool isLegal() const;
     QVector<DDZ::CardType> getRawHand() const;
     bool operator>(const HandCategory &right) const;
     void write(QJsonObject &json) const;
-    bool read(const QJsonObject &json);
+    void read(const QJsonObject &json);
     void setPass();
 
 private:

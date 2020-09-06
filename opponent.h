@@ -24,11 +24,11 @@ public:
     QJsonObject getConnInfo();
 
     void giveDeck(const QVector<Card> &hand, const QVector<Card> &hide);
-    void announceReady(bool black);
+    void announceReadyBW(bool black);
     void announceBid(bool bid);
     void confirmRoles();
-    void informHand(const HandCategory &hand);
-    HandCategory getLastHand() const;
+    void informCardsDealt(const HandCategory &hand);
+    HandCategory getLastDealt() const;
     DDZ::Role getRole() const;
     void setRole(const DDZ::Role &role);
     void informGameOver();
@@ -38,20 +38,20 @@ private:
     QString serverAddr;
     quint16 serverPort;
     QTcpSocket *m_socket;
-    QByteArray *buffer;
-    qint32 *sz;
+    QByteArray buffer;
+    qint32 sz;
 
     // game related
     DDZ::Role m_role;
-    HandCategory lastHand;
+    HandCategory lastDealtHand;
 
     bool writeData(const QByteArray &data);
     void processData(const QByteArray &rawData);
     void initialHandshake(const QJsonObject &json);
     void setRemoteServer(const QJsonObject &json);
-    void receiveCards(const QJsonObject &json);
+    void receiveDeck(const QJsonObject &json);
     void receiveBid(const QJsonObject &json);
-    void updateLastHand(const QJsonObject &json);
+    void updateLastDealt(const QJsonObject &json);
 
     inline bool writeData(const QJsonObject &json)
     {

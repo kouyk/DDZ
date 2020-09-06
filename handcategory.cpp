@@ -26,18 +26,19 @@ void HandCategory::insert(const DDZ::CardType &card)
         ++cardCount[static_cast<int>(card) / 4];
     else
         ++cardCount[static_cast<int>(card) - static_cast<int>(DDZ::CardType::BJ) + 13];
+
     parseHand();
 }
 
 void HandCategory::insert(const int &idx)
 {
-    if (idx > 0 && idx < 54)
-    {
+    if (idx > 0 && idx < 54) {
         raw_cards[idx] = true;
         if (DDZ::CardType(idx) < DDZ::CardType::BJ)
             ++cardCount[idx / 4];
         else
             ++cardCount[idx - static_cast<int>(DDZ::CardType::BJ) + 13];
+
         parseHand();
     }
 }
@@ -49,6 +50,7 @@ void HandCategory::remove(const DDZ::CardType &card)
         --cardCount[static_cast<int>(card) / 4];
     else
         --cardCount[static_cast<int>(card) - static_cast<int>(DDZ::CardType::BJ) + 13];
+
     parseHand();
 }
 
@@ -60,6 +62,7 @@ void HandCategory::remove(const int &idx)
         --cardCount[idx / 4];
     else
         --cardCount[idx - static_cast<int>(DDZ::CardType::BJ) + 13];
+
     parseHand();
 }
 
@@ -72,19 +75,23 @@ void HandCategory::clear()
     cardCount.fill(0);
 }
 
-HandCategory::Category HandCategory::getCategory() const
+bool HandCategory::isPass() const
 {
-    return cat;
+    return cat == PASS;
+}
+
+bool HandCategory::isLegal() const
+{
+    return cat != ILLEGAL;
 }
 
 QVector<DDZ::CardType> HandCategory::getRawHand() const
 {
     QVector<DDZ::CardType> rawHand;
     for (int i = 0; i < raw_cards.size(); ++i)
-    {
         if (raw_cards[i])
             rawHand.append(DDZ::CardType(i));
-    }
+
     return rawHand;
 }
 
@@ -101,6 +108,7 @@ bool HandCategory::operator>(const HandCategory &right) const
     return result;
 }
 
+// read and write to a json suitable for network transmission
 void HandCategory::write(QJsonObject &json) const
 {
     json["category"] = cat;
@@ -112,7 +120,7 @@ void HandCategory::write(QJsonObject &json) const
     json["raw_cards"] = rawHandArray;
 }
 
-bool HandCategory::read(const QJsonObject &json)
+void HandCategory::read(const QJsonObject &json)
 {
     if (json.contains("category") && json["category"].isDouble())
         cat = Category(json["category"].toDouble());
@@ -120,22 +128,23 @@ bool HandCategory::read(const QJsonObject &json)
         biggest = json["biggest"].toDouble();
     if (json.contains("chainLength") && json["chainLength"].isDouble())
         chainLength = json["chainLength"].toDouble();
-    if (json.contains("raw_cards") && json["raw_cards"].isArray())
-    {
+    if (json.contains("raw_cards") && json["raw_cards"].isArray()) {
         QJsonArray rawHandArray = json["raw_cards"].toArray();
         raw_cards.clear();
         for (const auto &c : rawHandArray)
             raw_cards.append(c.toBool());
         cardCount.fill(0);
+
         for (int i = 0; i < 52; ++i)
             if (raw_cards[i])
                 ++cardCount[i/4];
+
+        // special treatment for the 2 jokers since they are special
         if (raw_cards[52])
             ++cardCount[13];
         if (raw_cards[53])
             ++cardCount[14];
     }
-    return true;
 }
 
 void HandCategory::setPass()
@@ -147,9 +156,15 @@ void HandCategory::setPass()
     cardCount.fill(0);
 }
 
-bool HandCategory::isChain(const quint8 &m_total, const quint8 &linkSize) const
+/**
+ * @brief HandCategory::isChain
+ * @param chainLen Total length of the entire chain
+ * @param linkSize number of cards for each link of the chain
+ * @return
+ */
+bool HandCategory::isChain(const quint8 &chainLen, const quint8 &linkSize) const
 {
-    auto linkCount = m_total / linkSize;
+    auto linkCount = chainLen / linkSize;
     auto end = (linkCount == 1) ? cardCount.end() : cardCount.begin()+12;
     auto it = std::search_n(cardCount.begin(), end, linkCount, linkSize);
     return it != end;
@@ -197,12 +212,12 @@ void HandCategory::updateInfo(const HandCategory::Category &newCat, const quint8
 void HandCategory::parseHand()
 {
     const auto n = std::accumulate(cardCount.begin(), cardCount.end(), 0);
+
     if (n == 0)
         updateInfo(ILLEGAL, 0, 255);
     else if (n == 2 && cardCount[13] == 1 && cardCount[14] == 1)
         updateInfo(ROCKET, 1, 1);
-    else if (n == 4 && std::any_of(cardCount.begin(), cardCount.end(),
-                                   [](const auto &value){ return value == 4; }))
+    else if (n == 4 && std::any_of(cardCount.begin(), cardCount.end(), [](const auto &value){ return value == 4; }))
         updateInfo(BOMB, 1, 4);
     else if (n % 5 == 0 && isAirplaneBigWings(n))
         updateInfo((n == 5) ? TRIO_WITH_PAIR : AIRPLANE_BIG_WINGS, n / 5, 3);
@@ -216,29 +231,22 @@ void HandCategory::parseHand()
         updateInfo(SOLO_CHAIN, n, 1);
     else if (n == 1)
         updateInfo(SOLO, 1, 1);
-    else if (n == 6)
-    {
+    else if (n == 6) {
         auto jokers = cardCount[13] + cardCount[14];
-        if (std::any_of(cardCount.begin(), cardCount.end(),
-                        [](const auto &value){ return value == 4; })
+        if (std::any_of(cardCount.begin(), cardCount.end(), [](const auto &value){ return value == 4; })
             && std::count(cardCount.begin(), cardCount.end(), 1) == 2
             && jokers < 2)
             updateInfo(FOUR_OF_A_KIND_DUAL_SOLO, 1, 4);
         else
             updateInfo(ILLEGAL, 0, 255);
     }
-    else if (n == 8)
-    {
+    else if (n == 8) {
         if (std::count(cardCount.begin(), cardCount.end(), 4) == 1
-                && std::count(cardCount.begin(), cardCount.end(), 2) == 1)
+            && std::count(cardCount.begin(), cardCount.end(), 2) == 1)
             updateInfo(FOUR_OF_A_KIND_DUAL_PAIR, 1, 4);
         else
             updateInfo(ILLEGAL, 0, 255);
     }
     else
         updateInfo(ILLEGAL, 0, 255);
-//    for (const auto &c : cardCount)
-//        qDebug() << c;
-
-//    qDebug() << cat << endl;
 }

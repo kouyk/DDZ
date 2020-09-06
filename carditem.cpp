@@ -18,17 +18,15 @@ void CardItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, 
 {
     Q_UNUSED(option);
     Q_UNUSED(widget);
-    if (!pixmap.isNull())
-    {
-        painter->drawPixmap(QPointF(-pixmap.width() / 2, -pixmap.height() / 2),
-                            pixmap);
-        if (selected)
-        {
+    if (!pixmap.isNull()) {
+        painter->drawPixmap(QPointF(-pixmap.width() / 2, -pixmap.height() / 2), pixmap);
+
+        // put a colour overlay if the current card is being selected
+        if (selected) {
             QPainterPath path;
             path.addRoundedRect(boundingRect(), 9, 9);
             painter->fillPath(path, QBrush(QColor(128, 128, 255, 128)));
         }
-
     }
     else
         painter->drawRoundedRect(-111, -162, 223, 324, 5, 5);

@@ -20,8 +20,8 @@ MainWindow::MainWindow(QWidget *parent)
     connect(opponentC, &Opponent::addressReceived, this, &MainWindow::addrReceived);
     connect(player, &Player::beginGame, this, &MainWindow::showGameInterface);
     connect(player, &Player::quitGame, this, &MainWindow::close);
-    connect(opponentB, &Opponent::blackAndWhite, player, &Player::determineStart);
-    connect(opponentC, &Opponent::blackAndWhite, player, &Player::determineStart);
+    connect(opponentB, &Opponent::blackAndWhite, player, &Player::bwDecisionReceived);
+    connect(opponentC, &Opponent::blackAndWhite, player, &Player::bwDecisionReceived);
 }
 
 MainWindow::~MainWindow()
@@ -31,20 +31,13 @@ MainWindow::~MainWindow()
 void MainWindow::startServer(quint16 port)
 {
     tcpServer = new QTcpServer;
-    if (tcpServer->listen(QHostAddress::Any, port))
-    {
-        qDebug() << "Server started on port:" << tcpServer->serverPort();
+    if (tcpServer->listen(QHostAddress::Any, port)) {
         QObject::connect(tcpServer, SIGNAL(newConnection()), SLOT(acceptPeer()));
-        if (opponentC->getListenState() == QAbstractSocket::ConnectedState)
-        {
-            auto host = QHostAddress("127.0.0.233");
+        if (opponentC->getListenState() == QAbstractSocket::ConnectedState) {
+            auto host = QHostAddress(QStringLiteral("127.0.0.233"));
             auto hostport = tcpServer->serverPort();
             opponentC->notifyServerUp(host, hostport);
         }
-    }
-    else
-    {
-        qDebug() << "Server start failed!";
     }
 }
 
@@ -57,35 +50,26 @@ void MainWindow::showGameInterface()
 void MainWindow::incConnCount()
 {
     ++connCount;
-    qDebug() << "Number connected:" << connCount;
     if (connCount == 2)
-    {
         player->takeover(opponentB, opponentC, tcpServer == nullptr);
-    }
 }
 
 void MainWindow::acceptPeer()
 {
-    while (tcpServer->hasPendingConnections())
-    {
-        if (opponentB->getListenState() == QAbstractSocket::UnconnectedState)
-        {
+    while (tcpServer->hasPendingConnections()) {
+        if (opponentB->getListenState() == QAbstractSocket::UnconnectedState) {
             opponentB->setSocket(tcpServer->nextPendingConnection());
-            qDebug() << "Opponent B connected";
             opponentB->initServer();
             incConnCount();
         }
-        else if (opponentC->getListenState() == QAbstractSocket::UnconnectedState)
-        {
+        else if (opponentC->getListenState() == QAbstractSocket::UnconnectedState) {
             opponentC->setSocket(tcpServer->nextPendingConnection());
-            qDebug() << "Opponent C connected";
             opponentC->secondConnect(opponentB->getConnInfo());
             incConnCount();
         }
-        else
-        {
+        // rejects everyone else
+        else {
             tcpServer->nextPendingConnection()->disconnectFromHost();
-            qDebug() << "Incoming connection rejected";
         }
     }
 }
@@ -96,29 +80,24 @@ void MainWindow::addrReceived(const QString &serverAddr)
     quint16 port = 33333;
     bool connectionSuccess = false;
 
-    if (!serverAddr.isEmpty())
-    {
+    if (!serverAddr.isEmpty()) {
         auto addrList = serverAddr.split(':');
-        if (addrList.size() == 2)
-        {
+        if (addrList.size() == 2) {
             addr = addrList[0];
             port = addrList[1].toInt();
 
             if (opponentC->getListenState() == QAbstractSocket::UnconnectedState)
-            {
                 connectionSuccess = opponentC->connectTo(addr, port);
-                if (connectionSuccess) {
-                    qDebug() << "Connected to opponent C";
-                }
-            }
-            else if (opponentB->getListenState() == QAbstractSocket::UnconnectedState)
-            {
+            else if (opponentB->getListenState() == QAbstractSocket::UnconnectedState) {
                 connectionSuccess = opponentB->connectTo(addr, port);
-                if (connectionSuccess) {
-                    qDebug() << "Connected to opponent B";
-                }
+
+                /**
+                 * only the last player to join will reach here since it will
+                 * not have to start a server, and the last player will have the
+                 * two opponents connected in reverse order, so a swap is needed
+                 * to ensure turn consistency amongst all players
+                 */
                 std::swap(opponentB, opponentC);
-                qDebug() << "Opponent pointers swapped";
             }
         }
     }
@@ -126,7 +105,5 @@ void MainWindow::addrReceived(const QString &serverAddr)
     if (!connectionSuccess && tcpServer == nullptr)
         startServer(port);
     else
-    {
         incConnCount();
-    }
 }

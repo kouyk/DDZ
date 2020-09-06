@@ -28,9 +28,8 @@ public:
     explicit Player(QWidget *parent = nullptr);
     ~Player();
 
-    void determineStart(const bool &black);
+    void bwDecisionReceived(const bool &black);
     void takeover(Opponent *b, Opponent *c, const bool &lastToJoin);
-    void setBidder(bool bidder);
     void snatch();
 
 private:
@@ -45,10 +44,10 @@ private:
     Opponent *prevPlayer;
 
     QVector<Card> m_cards;
-    QVector<Card> hide_cards;
+    QVector<Card> publicCards;
     DDZ::Role m_role;
     bool firstBidder;
-    bool lateComer;
+    bool defaultBidder;
     bool needSnatchBid;
     State gameState;
     QVector<bool> blacks;
@@ -64,15 +63,17 @@ private:
     void displayCards();
     void updateLastDeal(const HandCategory &latestHand);
 
+    void gameStartInit();
+    
 private slots:
-    void passDeck(const QVector<Card> &hand, const QVector<Card> &hide);
+    void receiveCards(const QVector<Card> &visible, const QVector<Card> &hidden);
     void processBid(const bool &bid);
     void confirmRoles();
     void chooseCard(const Card &c, const bool &select);
     void dealHand();
     void opponentDealt();
     void lostGame();
-    void oneReady();
+    void playerReadyForBW();
 
 signals:
     void beginGame();
