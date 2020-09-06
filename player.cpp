@@ -473,6 +473,8 @@ void Player::lostGame() {
     oppoReady = 0;
     gameState = FINISHED;
     defaultBidder = false;
+    ui->buttonBox->hide();
+    ui->myCardsView->setEnabled(false);
     auto reply = QMessageBox::question(this, tr("You've lost :("), tr("Do you want to play another round?"));
     if (reply == QMessageBox::Yes)
         play();
