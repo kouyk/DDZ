@@ -242,7 +242,7 @@ void Player::makeBid(const bool &bid)
  */
 void Player::updateLastDeal(const HandCategory &latestHand)
 {
-    if (latestHand.getCategory() == HandCategory::PASS)
+    if (latestHand.isPass())
         return;
 
     auto *scene = ui->lastDealView->scene();
@@ -379,8 +379,8 @@ void Player::chooseCard(const Player::Card &c, const bool &selecting)
     auto prevHand = prevPlayer->getLastDealt();
     auto prev2Hand = nextPlayer->getLastDealt();
 
-    if (prevHand.getCategory() == HandCategory::PASS) {
-        if (prev2Hand.getCategory() == HandCategory::PASS)
+    if (prevHand.isPass()) {
+        if (prev2Hand.isPass())
             dealButton->setEnabled(hand.isLegal());
         else
             dealButton->setEnabled(hand > prev2Hand);

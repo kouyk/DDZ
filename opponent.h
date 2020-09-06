@@ -53,10 +53,7 @@ private:
     void receiveBid(const QJsonObject &json);
     void updateLastDealt(const QJsonObject &json);
 
-    inline bool writeData(const QJsonObject &json)
-    {
-        return writeData(QJsonDocument(json).toJson());
-    }
+    inline bool writeData(const QJsonObject &json) { return writeData(QJsonDocument(json).toJson()); }
 
 private slots:
     void receiveData();
